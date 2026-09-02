@@ -1,18 +1,61 @@
 <!DOCTYPE html>
 <html>
-<body style="background:#0a0a0a;color:white;font-family:Arial;padding:20px">
-<h1>Welcome {{ user }} 👑</h1>
-<a href="/logout" style="color:red">Logout</a>
-<hr>
-<h2>Talk to JARVIS</h2>
-<form method="POST">
-<input name="prompt" placeholder="Ask Jarvis anything..." style="width:70%;padding:10px">
-<button style="padding:10px;background:#00ff88;border:none">Send</button>
-</form>
-<br>
-<div style="background:#1a1a1a;padding:20px;border-radius:10px">
-<h3>JARVIS:</h3>
-<p>{{ response }}</p>
+<head>
+<title>JARVIS</title>
+<style>
+body{background:#050505;color:#00ff88;font-family:'Courier New';margin:0;padding:20px}
+.container{max-width:800px;margin:auto;border:2px solid #00ff88;padding:20px;border-radius:10px;box-shadow:0 0 20px #00ff88}
+h1{text-align:center;text-shadow:0 0 10px #00ff88}
+.chat{height:400px;overflow-y:auto;background:#0a0a0a;padding:10px;border-radius:5px;margin:20px 0}
+.msg{margin:10px 0}
+.user{text-align:right;color:#00ccff}
+.jarvis{color:#00ff88}
+input{width:75%;padding:12px;background:#111;border:1px solid #00ff88;color:white;border-radius:5px}
+button{padding:12px 20px;background:#00ff88;color:black;border:none;border-radius:5px;cursor:pointer;font-weight:bold}
+button:hover{box-shadow:0 0 10px #00ff88}
+.mic{background:red;color:white}
+</style>
+</head>
+<body>
+<div class="container">
+<h1>🤖 J.A.R.V.I.S ONLINE</h1>
+<a href="/logout" style="color:red;float:right">Logout</a>
+<p>Welcome, {{ user }} 👑</p>
+<div class="chat" id="chat"></div>
+<input id="prompt" placeholder="Ask Jarvis anything... or click mic">
+<button onclick="send()">Send</button>
+<button class="mic" onclick="talk()">🎤</button>
 </div>
+
+<script>
+async function send(){
+    let p = document.getElementById('prompt').value;
+    if(!p) return;
+    document.getElementById('chat').innerHTML += `<div class='msg user'>You: ${p}</div>`;
+    document.getElementById('prompt').value = '';
+    
+    let res = await fetch('/chat', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({prompt:p})});
+    let data = await res.json();
+    let reply = data.response;
+    if(data.link) window.open(data.link, '_blank');
+    
+    document.getElementById('chat').innerHTML += `<div class='msg jarvis'>JARVIS: ${reply}</div>`;
+    document.getElementById('chat').scrollTop = 99999;
+    speak(reply);
+}
+
+function talk(){
+    let r = new webkitSpeechRecognition();
+    r.lang = 'en-US';
+    r.onresult = e => {document.getElementById('prompt').value = e.results[0][0].transcript; send();}
+    r.start();
+}
+
+function speak(text){
+    let s = new SpeechSynthesisUtterance(text);
+    s.voice = speechSynthesis.getVoices().find(v => v.name.includes('Google'));
+    speechSynthesis.speak(s);
+}
+</script>
 </body>
 </html>
