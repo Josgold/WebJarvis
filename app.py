@@ -1,43 +1,95 @@
-from flask import Flask, render_template, request, jsonify
-from datetime import datetime
-import os, webbrowser
+from flask import Flask, render_template, jsonify, request, session, redirect, url_for
+from flask_sqlalchemy import SQLAlchemy
+import datetime
+import webbrowser
+import requests
+import os
 
 app = Flask(__name__)
+app.secret_key = "jarvis_secret_key_123"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+db = SQLAlchemy(app)
 
-@app.route('/')
+class User(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(80), unique=True, nullable=False)
+    password = db.Column(db.String(120), nullable=False)
+    role = db.Column(db.String(20), default="user") # user, cohost, host
+
+with app.app_context():
+    db.create_all()
+    # Create host account if it doesn't exist
+    if not User.query.filter_by(username="boss").first():
+        host = User(username="boss", password="boss123", role="host")
+        db.add(host)
+        db.commit()
+
+@app.route("/")
 def home():
-    return render_template('index.html')
+    if not session.get("user_id"):
+        return render_template("login.html")
+    if session.get("role") == "host":
+        return redirect(url_for("dashboard"))
+    return render_template("index.html")
 
-@app.route('/command', methods=['POST'])
-def command():
-    text = request.json['text'].lower()
-    reply = process_command(text)
-    return jsonify({"reply": reply})
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+    if request.method == "POST":
+        username = request.form["username"]
+        password = request.form["password"]
+        if User.query.filter_by(username=username).first():
+            return "Username already exists! <a href='/signup'>Try again</a>"
+        new_user = User(username=username, password=password, role="user")
+        db.add(new_user)
+        db.commit()
+        return redirect(url_for("home"))
+    return render_template("signup.html")
 
-def process_command(text):
-    # 1. WAKE WORD CHECK
-    if "hey jarvis" in text:
-        text = text.replace("hey jarvis", "").strip()
-        if text == "": return "Yes boss?"
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.form["username"]
+    password = request.form["password"]
+    user = User.query.filter_by(username=username, password=password).first()
+    if user:
+        session["user_id"] = user.id
+        session["username"] = user.username
+        session["role"] = user.role
+        return redirect(url_for("home"))
+    return "Wrong login! <a href='/'>Try again</a>"
+
+@app.route("/dashboard")
+def dashboard():
+    if session.get("role") not in ["host", "cohost"]:
+        return "Access denied"
+    users = User.query.all()
+    return render_template("dashboard.html", users=users)
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("home"))
+
+@app.route("/command/<cmd>")
+def command(cmd):
+    if not session.get("user_id"):
+        return jsonify({"reply": "Please login first"})
     
-    # 2. OPEN APPS COMMANDS
-    if "open chrome" in text:
-        os.system("start chrome")
-        return "Opening Chrome boss"
-    elif "open spotify" in text:
-        os.system("start spotify")
-        return "Opening Spotify"
-    elif "open notepad" in text:
-        os.system("start notepad")
-        return "Opening Notepad"
-    
-    # OLD COMMANDS
-    if "pen cold" in text:
-        return "Pen cold activated boss. Systems cooling."
-    elif "time" in text:
-        return "Current time is " + datetime.now().strftime("%I:%M %p")
+    cmd = cmd.lower()
+    if "time" in cmd:
+        now = datetime.datetime.now().strftime("%I:%M %p")
+        return jsonify({"reply": f"The time is {now}"})
+    elif "date" in cmd:
+        today = datetime.date.today().strftime("%B %d, %Y")
+        return jsonify({"reply": f"Today is {today}"})
+    elif "weather" in cmd:
+        city = "Cotonou, Benin"
+        if "in" in cmd:
+            city = cmd.split("in")[-1].strip()
+        url = f"https://wttr.in/{city}?format=3"
+        weather = requests.get(url).text
+        return jsonify({"reply": f"Weather in {city}: {weather}"})
     else:
-        return f"Copy that boss. You said: {text}"
+        return jsonify({"reply": "Sorry boss, I didn't get that"})
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000, debug=True)
+if __name__ == "__main__":
+    app.run(debug=True)
