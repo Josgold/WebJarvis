@@ -1,11 +1,42 @@
-<!DOCTYPE html><html><head><title>Host Dashboard</title>
-<style>body{background:#0a0a0a;color:white;font-family:Arial;padding:20px}
-.box{background:#1a1a1a;padding:20px;border-radius:10px}
-table{width:100%;color:white} th,td{padding:10px;text-align:left}</style>
-</head><body><div class="box">
-<h1>🤖 HOST DASHBOARD</h1>
-<p>Welcome {{ session.username }} | Role: {{ session.role }}</p>
-<h2>Total Users: {{ users|length }}</h2>
-<table><tr><th>ID</th><th>Username</th><th>Role</th></tr>
-{% for user in users %}<tr><td>{{ user.id }}</td><td>{{ user.username }}</td><td>{{ user.role }}</td></tr>{% endfor %}
-</table><br><a href="/logout" style="color:#00ff88">Logout</a></div></body></html>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Host Dashboard</title>
+    <style>
+        body{background:#0a0a0a;color:white;font-family:Arial;padding:20px}
+        .box{background:#1a1a1a;padding:20px;border-radius:10px}
+        table{width:100%;color:white;border-collapse:collapse} 
+        th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
+        .btn{background:#00ff88;color:black;padding:6px 12px;border-radius:5px;text-decoration:none;font-weight:bold}
+        .btn:hover{background:#00cc70}
+    </style>
+</head>
+<body>
+    <div class="box">
+        <h1>🤖 HOST DASHBOARD</h1>
+        <p>Welcome <b>{{ session.username }}</b> | Role: <b>{{ session.role }}</b></p>
+        <h2>Total Users: {{ users|length }}</h2>
+        
+        <table>
+            <tr><th>ID</th><th>Username</th><th>Role</th><th>Action</th></tr>
+            {% for user in users %}
+            <tr>
+                <td>{{ user.id }}</td>
+                <td>{{ user.username }}</td>
+                <td>{{ user.role }}</td>
+                <td>
+                    {% if user.role == "user" %}
+                        <a href="/promote/{{ user.id }}" class="btn">Make Co-host</a>
+                    {% elif user.role == "cohost" %}
+                        Co-host ✅
+                    {% else %}
+                        Host 👑
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        <br><a href="/logout" style="color:#00ff88">Logout</a>
+    </div>
+</body>
+</html>
