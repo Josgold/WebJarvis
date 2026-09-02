@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebJarvis</title>
+    <style>
+        body { background: #0a0a0a; color: #00ff88; font-family: Arial; text-align: center; padding: 50px; }
+        #status { font-size: 24px; margin: 20px; }
+        #listening { color: #ff0000; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.3;} 100% {opacity: 1;} }
+        button { background: #00ff88; color: #000; border: none; padding: 15px 30px; font-size: 18px; border-radius: 10px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <h1>🤖 WebJarvis</h1>
+    <p>Say "Hey Jarvis" to activate</p>
+    <div id="status">Sleeping...</div>
+    <button onclick="startListening()">Start Listening</button>
+
+    <script>
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        const recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.lang = 'en-US';
+        
+        let isListening = false;
+        const status = document.getElementById('status');
+        
+        recognition.onresult = function(event) {
+            const transcript = event.results[event.results.length-1][0].transcript.toLowerCase();
+            console.log(transcript);
+            
+            if(transcript.includes('hey jarvis') &&!isListening) {
+                isListening = true;
+                status.innerHTML = '<span id="listening">Listening...</span>';
+                speak("Yes boss, I'm listening");
+                
+                setTimeout(() => {
+                    const command = transcript.replace('hey jarvis', '').trim();
+                    if(command) processCommand(command);
+                    isListening = false;
+                    status.innerText = 'Sleeping...';
+                }, 3000);
+            }
+        };
+        
+        function processCommand(cmd) {
+            if(cmd.includes('time')) {
+                speak("The time is " + new Date().toLocaleTimeString());
+            } else if(cmd.includes('date')) {
+                speak("Today is " + new Date().toLocaleDateString());
+            } else if(cmd.includes('search')) {
+                const query = cmd.replace('search', '').trim();
+                window.open('https://www.google.com/search?q=' + query);
+                speak("Searching for " + query);
+            } else {
+                speak("I heard: " + cmd);
+            }
+        }
+        
+        function speak(text) {
+            const speech = new SpeechSynthesisUtterance(text);
+            speech.lang = 'en-US';
+            window.speechSynthesis.speak(speech);
+        }
+        
+        function startListening() {
+            recognition.start();
+        }
+    </script>
+</body>
+</html>
