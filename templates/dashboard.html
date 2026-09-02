@@ -1,0 +1,11 @@
+<!DOCTYPE html><html><head><title>Host Dashboard</title>
+<style>body{background:#0a0a0a;color:white;font-family:Arial;padding:20px}
+.box{background:#1a1a1a;padding:20px;border-radius:10px}
+table{width:100%;color:white} th,td{padding:10px;text-align:left}</style>
+</head><body><div class="box">
+<h1>🤖 HOST DASHBOARD</h1>
+<p>Welcome {{ session.username }} | Role: {{ session.role }}</p>
+<h2>Total Users: {{ users|length }}</h2>
+<table><tr><th>ID</th><th>Username</th><th>Role</th></tr>
+{% for user in users %}<tr><td>{{ user.id }}</td><td>{{ user.username }}</td><td>{{ user.role }}</td></tr>{% endfor %}
+</table><br><a href="/logout" style="color:#00ff88">Logout</a></div></body></html>
