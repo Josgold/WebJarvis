@@ -1,16 +1,16 @@
 from flask import Flask, render_template, request, redirect, url_for, session, jsonify
 import google.generativeai as genai
 import os
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = "jarvis_secret_key_2026"
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "AIzaSyBqKzJ8X9LmNpQrStUvWxYz1234567890")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") # MUST BE IN RENDER ENVIRONMENT
 genai.configure(api_key=GEMINI_API_KEY)
 model = genai.GenerativeModel('gemini-1.5-flash')
 
 USERS = {"boss": "boss123"}
-CHAT_HISTORY = {} # Memory
 
 def jarvis_commands(text):
     text = text.lower()
@@ -19,7 +19,6 @@ def jarvis_commands(text):
     if "weather" in text and "benin" in text:
         return "Checking weather for Benin City sir... It's warm and sunny ☀️", None
     if "time" in text:
-        from datetime import datetime
         return f"The current time is {datetime.now().strftime('%I:%M %p')} sir", None
     return None, None
 
@@ -45,7 +44,6 @@ def chat():
     if "user" not in session:
         return jsonify({"error": "Not logged in"})
     
-    user = session["user"]
     prompt = request.json["prompt"]
     
     # Check commands first
@@ -53,15 +51,11 @@ def chat():
     if cmd_response:
         return jsonify({"response": cmd_response, "link": link})
     
-    # Memory
-    if user not in CHAT_HISTORY:
-        CHAT_HISTORY[user] = []
-    CHAT_HISTORY[user].append({"role": "user", "parts": [prompt]})
-    
+    # Simple Gemini call - no broken memory
     try:
-        result = model.generate_content(CHAT_HISTORY[user] + [{"role": "user", "parts": ["You are Jarvis from Iron Man. Be helpful, loyal, and a bit witty."] + CHAT_HISTORY[user]}])
+        full_prompt = f"You are JARVIS from Iron Man. Be helpful, loyal, and a bit witty. User said: {prompt}"
+        result = model.generate_content(full_prompt)
         response = result.text
-        CHAT_HISTORY[user].append({"role": "model", "parts": [response]})
     except Exception as e:
         response = f"Error: {str(e)}"
     
