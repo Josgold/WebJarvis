@@ -7,8 +7,10 @@
         .box{background:#1a1a1a;padding:20px;border-radius:10px}
         table{width:100%;color:white;border-collapse:collapse} 
         th,td{padding:12px;text-align:left;border-bottom:1px solid #333}
-        .btn{background:#00ff88;color:black;padding:6px 12px;border-radius:5px;text-decoration:none;font-weight:bold}
-        .btn:hover{background:#00cc70}
+        .btn-promote{background:#00ff88;color:black;padding:6px 12px;border-radius:5px;text-decoration:none;font-weight:bold}
+        .btn-demote{background:#ff4444;color:white;padding:6px 12px;border-radius:5px;text-decoration:none;font-weight:bold}
+        .btn-promote:hover{background:#00cc70}
+        .btn-demote:hover{background:#cc3333}
     </style>
 </head>
 <body>
@@ -23,14 +25,18 @@
             <tr>
                 <td>{{ user.id }}</td>
                 <td>{{ user.username }}</td>
-                <td>{{ user.role }}</td>
+                <td>
+                    {% if user.role == "host" %}Host 👑
+                    {% elif user.role == "cohost" %}Co-host ✅
+                    {% else %}User{% endif %}
+                </td>
                 <td>
                     {% if user.role == "user" %}
-                        <a href="/promote/{{ user.id }}" class="btn">Make Co-host</a>
+                        <a href="/promote/{{ user.id }}" class="btn-promote">Make Co-host</a>
                     {% elif user.role == "cohost" %}
-                        Co-host ✅
+                        <a href="/demote/{{ user.id }}" class="btn-demote">Demote to User</a>
                     {% else %}
-                        Host 👑
+                        You 👑
                     {% endif %}
                 </td>
             </tr>
