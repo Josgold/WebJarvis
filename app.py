@@ -1,79 +1,67 @@
-from flask import Flask, render_template, request, redirect, url_for, session, jsonify
-import google.generativeai as genai
+from flask import Flask, render_template, request, jsonify, session
+import requests
+import speech_recognition as sr
+import pyttsx3
+import datetime
 import os
-from datetime import datetime
 
 app = Flask(__name__)
-app.secret_key = "jarvis_secret_key_2026"
+app.secret_key = "jarvis_boss_secret" # for memory
 
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY") # MUST BE IN RENDER ENVIRONMENT
-genai.configure(api_key=GEMINI_API_KEY)
-model = genai.GenerativeModel('gemini-1.5-flash')
+# TTS setup
+engine = pyttsx3.init()
+engine.setProperty('rate', 170)
 
-USERS = {"boss": "boss123"}
+# MEMORY - remembers stuff in this session
+if 'memory' not in session:
+    session['memory'] = {}
 
-def jarvis_commands(text):
-    text = text.lower()
-    if "open youtube" in text:
-        return "Opening YouTube for you sir", "https://youtube.com"
-    if "weather" in text and "benin" in text:
-        return "Checking weather for Benin City sir... It's warm and sunny ☀️", None
-    if "time" in text:
-        return f"The current time is {datetime.now().strftime('%I:%M %p')} sir", None
-    return None, None
+def speak(text):
+    engine.say(text)
+    engine.runAndWait()
+
+def get_weather(city="Port Harcourt"):
+    # You can add real API key later. This is demo
+    return f"The weather in {city} is 28°C, partly cloudy boss."
+
+def get_news():
+    return "Top news: Tech stocks are up today boss."
 
 @app.route("/")
-def login():
-    return render_template("login.html")
-
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-    if request.method == "POST":
-        USERS[request.form["username"]] = request.form["password"]
-        return redirect(url_for("login"))
-    return render_template("signup.html")
-
-@app.route("/dashboard")
-def dashboard():
-    if "user" not in session:
-        return redirect(url_for("login"))
-    return render_template("dashboard.html", user=session["user"])
+def home():
+    return render_template("index_v2.html") # new html
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    if "user" not in session:
-        return jsonify({"error": "Not logged in"})
-    
-    prompt = request.json["prompt"]
-    
-    # Check commands first
-    cmd_response, link = jarvis_commands(prompt)
-    if cmd_response:
-        return jsonify({"response": cmd_response, "link": link})
-    
-    # Simple Gemini call - no broken memory
-    try:
-        full_prompt = f"You are JARVIS from Iron Man. Be helpful, loyal, and a bit witty. User said: {prompt}"
-        result = model.generate_content(full_prompt)
-        response = result.text
-    except Exception as e:
-        response = f"Error: {str(e)}"
-    
-    return jsonify({"response": response})
+    data = request.json
+    user_input = data.get("message", "").lower()
+    response = ""
 
-@app.route("/auth", methods=["POST"])
-def auth():
-    username = request.form["username"]
-    password = request.form["password"]
-    if username in USERS and USERS[username] == password:
-        session["user"] = username
-        return redirect(url_for("dashboard"))
-    return "Wrong password. <a href='/'>Try again</a>"
+    # MEMORY
+    if "my name is" in user_input:
+        name = user_input.split("my name is")[1].strip()
+        session['memory']['name'] = name
+        response = f"Got it boss. I'll call you {name} from now on."
+    
+    elif "what is my name" in user_input:
+        response = f"Your name is {session['memory'].get('name', 'Boss')}"
 
-@app.route("/logout")
-def logout():
-    session.pop("user", None)
-    return redirect(url_for("login"))
+    # VOICE COMMANDS
+    elif "weather" in user_input:
+        response = get_weather()
+    elif "news" in user_input:
+        response = get_news()
+    elif "time" in user_input:
+        response = f"The time is {datetime.datetime.now().strftime('%I:%M %p')}"
+    elif "jarvis" in user_input:
+        response = f"Yes {session['memory'].get('name', 'Boss')}? I'm listening."
+    else:
+        response = f"I heard you say: {user_input}. Still learning more commands boss."
+    
+    # speak it out
+    # speak(response) # Uncomment when testing on PC with speaker
+    
+    return jsonify({"reply": response})
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(host="0.0.0.0", port=5000, debug=True)
