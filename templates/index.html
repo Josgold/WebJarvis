@@ -1,57 +1,14 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>JARVIS V2</title>
-    <style>
-        body { background: #000; color: #00f7ff; font-family: 'Arial'; text-align: center; }
-       .arc { width: 200px; height: 200px; border: 3px solid #00f7ff; border-radius: 50%; margin: 50px auto; animation: pulse 2s infinite; }
-        @keyframes pulse { 0%{box-shadow:0 0 0 0 #00f7ff} 70%{box-shadow:0 0 0 20px rgba(0,247,255,0)} 100%{box-shadow:0 0 0 0 rgba(0,247,255,0)} }
-        #chat { width: 60%; margin: auto; height: 300px; overflow-y: scroll; border: 1px solid #00f7ff; padding: 10px; }
-        button { background: #00f7ff; color: #000; padding: 15px 30px; border: none; font-size: 18px; cursor: pointer; }
-    </style>
-</head>
-<body>
-    <h1>J A R V I S</h1>
-    <div class="arc" id="arc"></div>
-    <button onclick="startVoice()">🎤 TALK TO JARVIS</button>
-    <div id="chat"></div>
-
-<script>
-    const chat = document.getElementById('chat');
-    const arc = document.getElementById('arc');
-
-    function addMessage(who, text) {
-        chat.innerHTML += `<p><b>${who}:</b> ${text}</p>`;
-        chat.scrollTop = chat.scrollHeight;
-    }
-
-    function startVoice() {
-        arc.style.borderColor = 'red';
-        const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
-        recognition.lang = 'en-US';
-        recognition.start();
-        recognition.onresult = function(e) {
-            const text = e.results[0][0].transcript;
-            addMessage('You', text);
-            sendToJarvis(text);
-            arc.style.borderColor = '#00f7ff';
-        }
-    }
-
-    function sendToJarvis(message) {
-        fetch('/chat', {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({message: message})
-        })
-       .then(res => res.json())
-       .then(data => {
-            addMessage('JARVIS', data.reply);
-            // Text to Speech
-            const speech = new SpeechSynthesisUtterance(data.reply);
-            window.speechSynthesis.speak(speech);
-        });
-    }
-</script>
-</body>
-</html>
+fetch('/chat', {
+  method: 'POST',
+  headers: {'Content-Type': 'application/json'},
+  body: JSON.stringify({message: userText})
+.then(res => res.json())
+.then(data => {
+  document.getElementById('reply').innerText = data.reply;
+  
+  // THIS MAKES BROWSER SPEAK
+  if(data.type === "speak"){
+    let speech = new SpeechSynthesisUtterance(data.text);
+    window.speechSynthesis.speak(speech);
+  }
+});
