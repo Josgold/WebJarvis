@@ -1,44 +1,46 @@
-from flask import Flask, render_template, request, jsonify, session
-import datetime
+from flask import Flask, render_template, request, jsonify
+import os
+import webbrowser
 
 app = Flask(__name__)
-app.secret_key = "jarvis_boss_secret" 
+
+# Your Jarvis logic here
+def get_jarvis_response(user_input):
+    user_input = user_input.lower()
+    
+    if "hello" in user_input or "hi" in user_input:
+        return "Hello boss, how can I help you today?"
+    elif "time" in user_input:
+        from datetime import datetime
+        now = datetime.now().strftime("%H:%M")
+        return f"The current time is {now}"
+    elif "open youtube" in user_input:
+        webbrowser.open("https://youtube.com")
+        return "Opening YouTube for you boss"
+    else:
+        return f"I heard you say: {user_input}"
+
+# NEW SPEAK FUNCTION - Tells browser to speak instead of server
+def speak(text):
+    return {"type": "speak", "text": text}
 
 @app.route("/")
 def home():
-    return render_template("index_v2.html")
+    return render_template("index.html")
 
 @app.route("/chat", methods=["POST"])
 def chat():
-    data = request.json
-    user_input = data.get("message", "").lower()
-    response = ""
-
-    # MEMORY
-    if "my name is" in user_input:
-        name = user_input.split("my name is")[1].strip()
-        session['memory'] = session.get('memory', {})
-        session['memory']['name'] = name
-        response = f"Got it boss. I'll call you {name} from now on."
+    data = request.get_json()
+    user_message = data.get("message", "")
     
-    elif "what is my name" in user_input:
-        name = session.get('memory', {}).get('name', 'Boss')
-        response = f"Your name is {name}"
-
-    # TOOLS
-    elif "weather" in user_input:
-        response = "The weather in Port Harcourt is 28°C, partly cloudy boss."
-    elif "news" in user_input:
-        response = "Top news: Tech stocks are up today boss."
-    elif "time" in user_input:
-        response = f"The time is {datetime.datetime.now().strftime('%I:%M %p')}"
-    elif "jarvis" in user_input:
-        name = session.get('memory', {}).get('name', 'Boss')
-        response = f"Yes {name}? I'm listening."
-    else:
-        response = f"I heard you say: {user_input}. Still learning more commands boss."
+    # Get Jarvis response
+    jarvis_text = get_jarvis_response(user_message)
     
-    return jsonify({"reply": response})
+    # Return both text and speak command
+    response = speak(jarvis_text)
+    response["reply"] = jarvis_text
+    
+    return jsonify(response)
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    app.run(debug=True, host="0.0.0.0", port=5000)
